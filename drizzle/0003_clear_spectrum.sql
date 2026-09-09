@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "Alert_active_dedupeKey_idx" ON "Alert" USING btree ("dedupeKey") WHERE "Alert"."resolved" = false;

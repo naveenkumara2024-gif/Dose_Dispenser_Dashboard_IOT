@@ -1,0 +1,1 @@
+ALTER TABLE "Alert" ADD COLUMN "dedupeKey" text;
