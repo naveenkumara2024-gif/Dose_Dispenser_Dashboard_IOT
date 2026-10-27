@@ -14,7 +14,7 @@ type Props = {
   onEditMedication: (medication: Medication) => void;
 };
 
-// Grouped by medication: one header row (name/dosage/compartment + Edit) with each of its
+// Grouped by medication: one header row (name/dosage + Edit) with each of its
 // dose times listed underneath. A medication with several times shows as one group, not
 // several look-alike rows — that grouping is what makes "one medication, one edit path"
 // visible in the UI, not just true in the database (prompt 12).
@@ -49,7 +49,7 @@ export function ScheduleTable({
               <div>
                 <span className="font-medium">{medication.name}</span>{" "}
                 <span className="text-sm text-muted-foreground">
-                  {medication.dosage} · compartment {medication.compartmentNo}
+                  {medication.dosage}
                 </span>
               </div>
               <Button
@@ -67,8 +67,12 @@ export function ScheduleTable({
                     <td className="w-24 py-2 pl-4 font-mono font-medium">
                       {schedule.time}
                     </td>
+                    <td className="w-16 py-2 font-medium">
+                      C{schedule.compartmentNo}
+                    </td>
                     <td className="py-2 text-muted-foreground">
                       {describeFrequency(schedule)}
+                      {schedule.endDate && ` · until ${schedule.endDate}`}
                     </td>
                     <td className="py-2 pr-4 text-right whitespace-nowrap">
                       <Button

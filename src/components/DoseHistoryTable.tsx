@@ -3,10 +3,10 @@ import type { HistoryLog } from "@/types";
 const STATUS_STYLES: Record<string, { label: string; className: string }> = {
   DISPENSED: {
     label: "Dispensed",
-    className: "bg-blue-100 text-blue-800",
+    className: "bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300",
   },
-  CONFIRMED_TAKEN: { label: "Taken", className: "bg-green-100 text-green-800" },
-  MISSED: { label: "Missed", className: "bg-red-100 text-red-800" },
+  CONFIRMED_TAKEN: { label: "Taken", className: "bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300" },
+  MISSED: { label: "Missed", className: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300" },
 };
 
 function formatTimestamp(iso: string): string {
@@ -45,7 +45,7 @@ export function DoseHistoryTable({ logs }: { logs: HistoryLog[] }) {
           {logs.map((log) => {
             const status = STATUS_STYLES[log.status] ?? {
               label: log.status,
-              className: "bg-gray-100 text-gray-700",
+              className: "bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300",
             };
             return (
               <tr key={log.id} className="border-b last:border-0">

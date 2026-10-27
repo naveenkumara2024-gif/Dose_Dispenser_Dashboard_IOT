@@ -4,6 +4,7 @@ import { ScheduleForm } from "@/components/ScheduleForm";
 import { ScheduleTable } from "@/components/ScheduleTable";
 import { TimeForm } from "@/components/TimeForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLiveRefresh } from "@/lib/live";
 import type {
   FieldErrors,
   Medication,
@@ -43,6 +44,31 @@ export function SchedulePage() {
   useEffect(() => {
     void load();
   }, [load]);
+  // Another tab or the monitor job (end dates, weekly doses) changed the schedule.
+  useLiveRefresh(["schedule"], load);
+
+  // 400 = field errors, 409 = a compartment rule (occupied / out of order, prompt 15).
+  // Returns true when the save went through.
+  const handleSaveResponse = async (
+    res: Response,
+    setErrors: (errors: FieldErrors) => void,
+  ): Promise<boolean> => {
+    if (res.status === 400) {
+      const body = (await res.json()) as { error: { fieldErrors: FieldErrors } };
+      setErrors(body.error.fieldErrors);
+      return false;
+    }
+    if (res.status === 409) {
+      const body = (await res.json()) as { error: string };
+      setMessage(body.error);
+      return false;
+    }
+    if (!res.ok) {
+      setMessage("Something went wrong. Please try again.");
+      return false;
+    }
+    return true;
+  };
 
   const handleCreateMedication = async (values: ScheduleFormValues) => {
     setNewMedicationErrors({});
@@ -54,17 +80,9 @@ export function SchedulePage() {
       body: JSON.stringify(values),
     });
 
-    if (res.status === 400) {
-      const body = (await res.json()) as { error: { fieldErrors: FieldErrors } };
-      setNewMedicationErrors(body.error.fieldErrors);
-      return;
-    }
-    if (!res.ok) {
-      setMessage("Something went wrong. Please try again.");
-      return;
-    }
-
+    if (!(await handleSaveResponse(res, setNewMedicationErrors))) return false;
     await load();
+    return true;
   };
 
   const handleSubmitTime = async (
@@ -84,18 +102,10 @@ export function SchedulePage() {
       body: JSON.stringify(values),
     });
 
-    if (res.status === 400) {
-      const body = (await res.json()) as { error: { fieldErrors: FieldErrors } };
-      setTimeErrors(body.error.fieldErrors);
-      return;
-    }
-    if (!res.ok) {
-      setMessage("Something went wrong. Please try again.");
-      return;
-    }
-
+    if (!(await handleSaveResponse(res, setTimeErrors))) return false;
     setEditingTime(null);
     await load();
+    return true;
   };
 
   const handleSubmitMedication = async (values: MedicationFormValues) => {
@@ -155,7 +165,7 @@ export function SchedulePage() {
       </div>
 
       {message && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-300">
           {message}
         </div>
       )}
@@ -166,6 +176,7 @@ export function SchedulePage() {
         </CardHeader>
         <CardContent>
           <ScheduleForm
+            schedules={schedules ?? []}
             fieldErrors={newMedicationErrors}
             onSubmit={handleCreateMedication}
           />
@@ -181,6 +192,7 @@ export function SchedulePage() {
         <CardContent>
           <TimeForm
             medications={medications}
+            schedules={schedules ?? []}
             editing={editingTime}
             fieldErrors={timeErrors}
             onSubmit={handleSubmitTime}

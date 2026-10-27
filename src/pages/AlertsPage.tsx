@@ -3,6 +3,7 @@ import { AlertList } from "@/components/AlertList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { useLiveRefresh } from "@/lib/live";
 import { ALERT_LABELS, type AlertRow, type AlertsResponse } from "@/types";
 
 const PAGE_SIZE = 25;
@@ -35,6 +36,7 @@ export function AlertsPage() {
   useEffect(() => {
     void load();
   }, [load]);
+  useLiveRefresh(["alerts"], load);
 
   const toggle = async (alert: AlertRow) => {
     setBusyId(alert.id);
@@ -68,7 +70,7 @@ export function AlertsPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 p-4 text-sm text-red-800 dark:text-red-300">
           {error}
         </div>
       )}

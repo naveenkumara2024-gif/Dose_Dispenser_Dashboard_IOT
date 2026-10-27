@@ -2,6 +2,7 @@ import type { BunRequest } from "bun";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { medication, schedule } from "../db/schema";
+import { assertCompartmentRules, compartmentErrorResponse } from "../lib/compartments";
 import { db } from "../lib/db";
 import { medicationUpdateSchema, scheduleTimeCreateSchema } from "../lib/validators";
 
@@ -70,17 +71,27 @@ export async function addScheduleTime(req: BunRequest<"/api/medications/:id/sche
     return Response.json({ error: "Medication not found" }, { status: 404 });
   }
 
-  const { time, frequency, dayOfWeek } = parsed.data;
+  const { time, frequency, dayOfWeek, compartmentNo, endDate } = parsed.data;
 
-  const [created] = await db
-    .insert(schedule)
-    .values({
-      medicationId,
-      time,
-      frequency,
-      dayOfWeek: frequency === "weekly" ? (dayOfWeek ?? null) : null,
-    })
-    .returning();
+  try {
+    const created = await db.transaction(async (tx) => {
+      await assertCompartmentRules(tx, { compartmentNo, time });
+      const [row] = await tx
+        .insert(schedule)
+        .values({
+          medicationId,
+          time,
+          frequency,
+          dayOfWeek: frequency === "weekly" ? (dayOfWeek ?? null) : null,
+          compartmentNo,
+          endDate: endDate ?? null,
+        })
+        .returning();
+      return row;
+    });
 
-  return Response.json(created, { status: 201 });
+    return Response.json(created, { status: 201 });
+  } catch (error) {
+    return compartmentErrorResponse(error);
+  }
 }

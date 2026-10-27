@@ -1,8 +1,13 @@
 import { and, count, desc, eq, gte } from "drizzle-orm";
 import { alert, dispenseLog, schedule as scheduleTable } from "../db/schema";
 import { db } from "../lib/db";
-import { todayInZone, weekdayOfDate, zonedDayBounds } from "../lib/time";
-import { getLastHeartbeatAt, isDeviceOnline } from "./deviceHeartbeat";
+import {
+  minutesSinceMidnightInZone,
+  todayInZone,
+  weekdayOfDate,
+  zonedDayBounds,
+} from "../lib/time";
+import { getLastHeartbeatAt, isDeviceOnline } from "../services/heartbeat";
 
 const ADHERENCE_WINDOW_DAYS = 7;
 
@@ -61,8 +66,10 @@ export async function GET() {
       getLastHeartbeatAt(),
     ]);
 
+  const today = todayInZone();
   const todaysDoses = schedules
     .filter((schedule) => isDueToday(schedule.frequency, schedule.dayOfWeek))
+    .filter((schedule) => schedule.endDate === null || schedule.endDate >= today)
     .map((schedule) => {
     const logs = todaysLogs.filter((log) => log.scheduleId === schedule.id);
     const confirmed = logs.find((log) => log.status === "CONFIRMED_TAKEN");
@@ -75,7 +82,7 @@ export async function GET() {
       frequency: schedule.frequency,
       medicationName: schedule.medication.name,
       dosage: schedule.medication.dosage,
-      compartmentNo: schedule.medication.compartmentNo,
+      compartmentNo: schedule.compartmentNo,
       status: confirmed
         ? "CONFIRMED_TAKEN"
         : missed
@@ -86,6 +93,18 @@ export async function GET() {
     };
   });
 
+  // Every compartment that currently holds a dose, whether or not it is due today - the
+  // dashboard's wheel needs the loaded-but-idle ones (e.g. a weekly dose on another day).
+  const compartments = schedules
+    .filter((schedule) => schedule.endDate === null || schedule.endDate >= today)
+    .map((schedule) => ({
+      compartmentNo: schedule.compartmentNo,
+      medicationName: schedule.medication.name,
+      dosage: schedule.medication.dosage,
+      time: schedule.time,
+      dueToday: isDueToday(schedule.frequency, schedule.dayOfWeek),
+    }));
+
   const statusTotal = (status: string) =>
     adherenceRows.find((row) => row.status === status)?.total ?? 0;
 
@@ -93,7 +112,11 @@ export async function GET() {
   const confirmedCount = statusTotal("CONFIRMED_TAKEN");
 
   return Response.json({
+    // Care-location clock (APP_TIMEZONE), so the "next drop in ..." countdown doesn't
+    // depend on the caregiver's browser timezone.
+    nowMinutes: minutesSinceMidnightInZone(),
     todaysDoses,
+    compartments,
     adherence: {
       pct:
         dispensedCount > 0

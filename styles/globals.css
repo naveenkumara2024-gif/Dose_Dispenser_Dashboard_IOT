@@ -39,11 +39,28 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-soft: var(--brand-blue-soft);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-soft: var(--brand-orange-soft);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --radius: 0.75rem;
+  --brand-blue: oklch(0.55 0.24 263);
+  --brand-blue-soft: oklch(0.88 0.06 263);
+  --brand-orange: oklch(0.66 0.23 36);
+  --brand-orange-soft: oklch(0.93 0.05 40);
+  --slot-empty: oklch(0.955 0.003 260);
+  --slot-empty-text: oklch(0.7 0 0);
+  --slot-idle: oklch(0.93 0.025 263);
+  --slot-idle-text: oklch(0.5 0.12 263);
+  --slot-dispensed-text: oklch(0.4 0.17 263);
+  --slot-taken-text: oklch(0.45 0 0);
+  --slot-missed-text: oklch(0.5 0.2 36);
+  --hatch-bg: oklch(0.975 0.002 260);
+  --hatch-line: oklch(0.78 0 0);
+  --background: oklch(0.962 0.002 260);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -77,24 +94,39 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  color-scheme: dark;
+  /* AMOLED: true-black page, near-black cards so OLED pixels stay off between them. */
+  --brand-blue: oklch(0.64 0.21 263);
+  --brand-blue-soft: oklch(0.32 0.1 263);
+  --brand-orange: oklch(0.69 0.21 38);
+  --brand-orange-soft: oklch(0.3 0.08 38);
+  --slot-empty: oklch(0.2 0 0);
+  --slot-empty-text: oklch(0.5 0 0);
+  --slot-idle: oklch(0.26 0.05 263);
+  --slot-idle-text: oklch(0.78 0.1 263);
+  --slot-dispensed-text: oklch(0.86 0.09 263);
+  --slot-taken-text: oklch(0.72 0 0);
+  --slot-missed-text: oklch(0.83 0.12 40);
+  --hatch-bg: oklch(0.17 0 0);
+  --hatch-line: oklch(0.35 0 0);
+  --background: oklch(0 0 0);
+  --foreground: oklch(0.97 0 0);
+  --card: oklch(0.14 0 0);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.14 0 0);
+  --popover-foreground: oklch(0.97 0 0);
+  --primary: oklch(0.97 0 0);
+  --primary-foreground: oklch(0.1 0 0);
+  --secondary: oklch(0.21 0 0);
+  --secondary-foreground: oklch(0.97 0 0);
+  --muted: oklch(0.21 0 0);
+  --muted-foreground: oklch(0.68 0 0);
+  --accent: oklch(0.21 0 0);
+  --accent-foreground: oklch(0.97 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.6 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -108,6 +140,68 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+@keyframes wheel-glow {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* Card surface.
+   Light: a glossy, slightly raised panel - soft diagonal sheen over a cool tint, a thin
+   cool-blue hairline, an inner top highlight and layered shadows for depth.
+   Dark (AMOLED): flat, just a clean cool hairline (blue at the top-left, a hint of warm at
+   the bottom-right). The hairline is a gradient in the border-box layer, so it follows the
+   rounded corners. */
+@layer components {
+  .card-surface {
+    border: 1px solid transparent;
+    background:
+      linear-gradient(125deg, oklch(1 0 0 / 0.95) 0%, oklch(1 0 0 / 0.55) 22%, oklch(1 0 0 / 0) 52%) padding-box,
+      linear-gradient(180deg, oklch(0.985 0.004 262), oklch(0.968 0.009 262)) padding-box,
+      linear-gradient(145deg, oklch(0.8 0.07 262), oklch(0.92 0.015 262) 38%, oklch(0.9 0.02 262) 66%, oklch(0.82 0.06 262)) border-box;
+    box-shadow:
+      inset 0 1px 0 oklch(1 0 0 / 0.9),
+      inset 0 -1px 0 oklch(0.3 0.03 262 / 0.04),
+      0 1px 2px oklch(0.3 0.04 262 / 0.06),
+      0 8px 16px -6px oklch(0.3 0.05 262 / 0.1),
+      0 26px 44px -22px oklch(0.4 0.12 262 / 0.28);
+  }
+
+  .dark .card-surface {
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      linear-gradient(145deg, oklch(0.62 0.17 263 / 0.6), oklch(1 0 0 / 0.07) 36%, oklch(1 0 0 / 0.07) 64%, oklch(0.68 0.19 38 / 0.22)) border-box;
+    box-shadow: none;
+  }
+
+  /* Inner tiles/rows sitting on a card: a faint border and highlight so they read as inset. */
+  .box-surface {
+    border: 1px solid oklch(0.3 0.04 262 / 0.07);
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.8), 0 1px 2px oklch(0.3 0.04 262 / 0.04);
+  }
+
+  .dark .box-surface {
+    border-color: oklch(1 0 0 / 0.07);
+    box-shadow: none;
+  }
+}
+
+/* Page background glow (see Layout). Dark mode only - light mode keeps the plain background.
+   Blue from the top-left, orange from the bottom-right, plus faint blooms in the other two corners. */
+@layer components {
+  .dark .app-glow {
+    background:
+      radial-gradient(80% 85% at 0% 0%, color-mix(in oklch, var(--brand-blue) 64%, transparent), transparent 72%),
+      radial-gradient(75% 80% at 100% 100%, color-mix(in oklch, var(--brand-orange) 50%, transparent), transparent 72%),
+      radial-gradient(45% 50% at 100% 0%, color-mix(in oklch, var(--brand-blue) 22%, transparent), transparent 70%),
+      radial-gradient(45% 50% at 0% 100%, color-mix(in oklch, var(--brand-orange) 16%, transparent), transparent 70%);
+  }
 }
 
 @layer base {

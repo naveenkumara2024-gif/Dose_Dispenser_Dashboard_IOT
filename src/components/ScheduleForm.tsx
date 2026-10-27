@@ -1,36 +1,50 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { CompartmentFields, firstFreeCompartment } from "@/components/CompartmentFields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { WEEKDAYS, type FieldErrors, type ScheduleFormValues } from "@/types";
+import {
+  WEEKDAYS,
+  type FieldErrors,
+  type ScheduleFormValues,
+  type ScheduleWithMedication,
+} from "@/types";
 
 const EMPTY: ScheduleFormValues = {
   name: "",
   dosage: "",
   compartmentNo: 1,
+  endDate: null,
   time: "08:00",
   frequency: "daily",
   dayOfWeek: null,
 };
 
 type Props = {
+  schedules: ScheduleWithMedication[];
   fieldErrors: FieldErrors;
-  onSubmit: (values: ScheduleFormValues) => Promise<void>;
+  onSubmit: (values: ScheduleFormValues) => Promise<boolean>;
 };
 
 // Creates a brand-new medication + its first dose time. Editing an existing medication's
-// name/dosage/compartment, or adding another time to one, are separate flows — see
+// name/dosage, or adding another time to one, are separate flows — see
 // MedicationEditForm and TimeForm (prompt 12).
-export function ScheduleForm({ fieldErrors, onSubmit }: Props) {
+export function ScheduleForm({ schedules, fieldErrors, onSubmit }: Props) {
   const [values, setValues] = useState<ScheduleFormValues>(EMPTY);
   const [saving, setSaving] = useState(false);
+
+  // Default to the first empty compartment whenever the schedule changes.
+  useEffect(() => {
+    setValues((v) => ({ ...v, compartmentNo: firstFreeCompartment(schedules) }));
+  }, [schedules]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
     try {
-      await onSubmit(values);
-      setValues(EMPTY);
+      if (await onSubmit(values)) {
+        setValues({ ...EMPTY, compartmentNo: firstFreeCompartment(schedules) });
+      }
     } finally {
       setSaving(false);
     }
@@ -49,7 +63,7 @@ export function ScheduleForm({ fieldErrors, onSubmit }: Props) {
           placeholder="e.g. Metformin"
         />
         {fieldError("name") && (
-          <p className="mt-1 text-xs text-red-600">{fieldError("name")}</p>
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldError("name")}</p>
         )}
       </div>
 
@@ -62,25 +76,7 @@ export function ScheduleForm({ fieldErrors, onSubmit }: Props) {
           placeholder="500mg"
         />
         {fieldError("dosage") && (
-          <p className="mt-1 text-xs text-red-600">{fieldError("dosage")}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="compartmentNo">Compartment</Label>
-        <Input
-          id="compartmentNo"
-          type="number"
-          min={0}
-          value={values.compartmentNo}
-          onChange={(e) =>
-            setValues({ ...values, compartmentNo: Number(e.target.value) })
-          }
-        />
-        {fieldError("compartmentNo") && (
-          <p className="mt-1 text-xs text-red-600">
-            {fieldError("compartmentNo")}
-          </p>
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldError("dosage")}</p>
         )}
       </div>
 
@@ -93,7 +89,7 @@ export function ScheduleForm({ fieldErrors, onSubmit }: Props) {
           onChange={(e) => setValues({ ...values, time: e.target.value })}
         />
         {fieldError("time") && (
-          <p className="mt-1 text-xs text-red-600">{fieldError("time")}</p>
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldError("time")}</p>
         )}
       </div>
 
@@ -136,14 +132,27 @@ export function ScheduleForm({ fieldErrors, onSubmit }: Props) {
             ))}
           </select>
           {fieldError("dayOfWeek") && (
-            <p className="mt-1 text-xs text-red-600">
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">
               {fieldError("dayOfWeek")}
             </p>
           )}
         </div>
       )}
 
-      <div className="flex items-end gap-2 sm:col-span-4">
+      <CompartmentFields
+        idPrefix="new"
+        schedules={schedules}
+        compartmentNo={values.compartmentNo}
+        time={values.time}
+        endDate={values.endDate}
+        errors={{
+          compartmentNo: fieldError("compartmentNo"),
+          endDate: fieldError("endDate"),
+        }}
+        onChange={(next) => setValues({ ...values, ...next })}
+      />
+
+      <div className="flex items-end gap-2 sm:col-span-5">
         <Button type="submit" disabled={saving}>
           {saving ? "Saving…" : "Add medication"}
         </Button>

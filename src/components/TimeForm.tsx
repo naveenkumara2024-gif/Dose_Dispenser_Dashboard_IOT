@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CompartmentFields, firstFreeCompartment } from "@/components/CompartmentFields";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,6 +14,8 @@ const EMPTY: ScheduleTimeFormValues = {
   time: "08:00",
   frequency: "daily",
   dayOfWeek: null,
+  compartmentNo: 1,
+  endDate: null,
 };
 
 const SELECT_CLASS =
@@ -20,21 +23,24 @@ const SELECT_CLASS =
 
 type Props = {
   medications: Medication[];
+  schedules: ScheduleWithMedication[];
   editing: ScheduleWithMedication | null;
   fieldErrors: FieldErrors;
   onSubmit: (
     values: ScheduleTimeFormValues,
     medicationId: string | null,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   onCancel: () => void;
 };
 
 // Adds another dose time to an existing medication (medication picker + time fields), or
 // edits one that already exists (time fields only — moving a time to a different medication
 // isn't supported here; delete and re-add if that's genuinely needed). Never touches
-// name/dosage/compartment — that's MedicationEditForm's job (prompt 12).
+// name/dosage — that's MedicationEditForm's job (prompt 12). Compartment and end date
+// belong to the dose time, so they're edited here (prompt 15).
 export function TimeForm({
   medications,
+  schedules,
   editing,
   fieldErrors,
   onSubmit,
@@ -50,19 +56,23 @@ export function TimeForm({
         time: editing.time,
         frequency: editing.frequency === "weekly" ? "weekly" : "daily",
         dayOfWeek: editing.dayOfWeek,
+        compartmentNo: editing.compartmentNo,
+        endDate: editing.endDate,
       });
     } else {
-      setValues(EMPTY);
+      setValues({ ...EMPTY, compartmentNo: firstFreeCompartment(schedules) });
       setMedicationId((id) => id || medications[0]?.id || "");
     }
-  }, [editing, medications]);
+  }, [editing, medications, schedules]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
     try {
-      await onSubmit(values, editing ? null : medicationId);
-      if (!editing) setValues(EMPTY);
+      const saved = await onSubmit(values, editing ? null : medicationId);
+      if (saved && !editing) {
+        setValues({ ...EMPTY, compartmentNo: firstFreeCompartment(schedules) });
+      }
     } finally {
       setSaving(false);
     }
@@ -108,7 +118,7 @@ export function TimeForm({
           className={SELECT_CLASS}
         />
         {fieldError("time") && (
-          <p className="mt-1 text-xs text-red-600">{fieldError("time")}</p>
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldError("time")}</p>
         )}
       </div>
 
@@ -152,12 +162,26 @@ export function TimeForm({
             ))}
           </select>
           {fieldError("dayOfWeek") && (
-            <p className="mt-1 text-xs text-red-600">
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">
               {fieldError("dayOfWeek")}
             </p>
           )}
         </div>
       )}
+
+      <CompartmentFields
+        idPrefix="time"
+        schedules={schedules}
+        excludeId={editing?.id}
+        compartmentNo={values.compartmentNo}
+        time={values.time}
+        endDate={values.endDate}
+        errors={{
+          compartmentNo: fieldError("compartmentNo"),
+          endDate: fieldError("endDate"),
+        }}
+        onChange={(next) => setValues({ ...values, ...next })}
+      />
 
       <div className="flex items-end gap-2 sm:col-span-4">
         <Button type="submit" disabled={saving}>

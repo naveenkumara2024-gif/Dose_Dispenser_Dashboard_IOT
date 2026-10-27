@@ -12,8 +12,8 @@ import type { StockHistoryPoint } from "@/types";
 // Sequential blue, single hue — this chart has exactly one series, so no legend is
 // needed (the card title already says what compartment/medication this is).
 const LINE_COLOR = "#2a78d6";
-const GRIDLINE_COLOR = "#e1e0d9";
-const AXIS_COLOR = "#898781";
+const GRIDLINE_COLOR = "var(--border)";
+const AXIS_COLOR = "var(--muted-foreground)";
 
 function formatTick(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -32,7 +32,7 @@ function TooltipContent({
   if (!active || !payload?.length) return null;
   const point = payload[0]!.payload;
   return (
-    <div className="rounded-md border bg-white px-3 py-2 text-xs shadow-sm">
+    <div className="rounded-md border bg-card px-3 py-2 text-xs shadow-sm">
       <p className="font-semibold text-foreground">{point.weight}g</p>
       <p className="text-muted-foreground">
         {new Date(point.timestamp).toLocaleString(undefined, {
@@ -73,7 +73,7 @@ export function StockChart({ history }: { history: StockHistoryPoint[] }) {
           tick={{ fontSize: 11, fill: AXIS_COLOR }}
           axisLine={false}
           tickLine={false}
-          width={36}
+          width={44}
           unit="g"
         />
         <Tooltip content={<TooltipContent />} cursor={{ stroke: AXIS_COLOR }} />
@@ -82,8 +82,8 @@ export function StockChart({ history }: { history: StockHistoryPoint[] }) {
           dataKey="weight"
           stroke={LINE_COLOR}
           strokeWidth={2}
-          dot={{ r: 4, fill: LINE_COLOR, stroke: "#fcfcfb", strokeWidth: 2 }}
-          activeDot={{ r: 5, fill: LINE_COLOR, stroke: "#fcfcfb", strokeWidth: 2 }}
+          dot={{ r: 4, fill: LINE_COLOR, stroke: "var(--card)", strokeWidth: 2 }}
+          activeDot={{ r: 5, fill: LINE_COLOR, stroke: "var(--card)", strokeWidth: 2 }}
         />
       </LineChart>
     </ResponsiveContainer>

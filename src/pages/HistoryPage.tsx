@@ -3,6 +3,7 @@ import { DoseHistoryTable } from "@/components/DoseHistoryTable";
 import { HistoryFilters } from "@/components/HistoryFilters";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLiveRefresh } from "@/lib/live";
 import type {
   HistoryFilterState,
   HistoryResponse,
@@ -25,12 +26,20 @@ export function HistoryPage() {
   const [schedules, setSchedules] = useState<ScheduleWithMedication[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const loadSchedules = useCallback(
+    () =>
+      fetch("/api/schedule?includeArchived=1")
+        .then((res) => res.json() as Promise<ScheduleWithMedication[]>)
+        .then(setSchedules)
+        .catch(() => setSchedules([])),
+    [],
+  );
+
   useEffect(() => {
-    fetch("/api/schedule?includeArchived=1")
-      .then((res) => res.json() as Promise<ScheduleWithMedication[]>)
-      .then(setSchedules)
-      .catch(() => setSchedules([]));
-  }, []);
+    void loadSchedules();
+  }, [loadSchedules]);
+  // Medication filter options follow schedule edits made anywhere.
+  useLiveRefresh(["schedule"], loadSchedules);
 
   const load = useCallback(async () => {
     const query = new URLSearchParams({
@@ -54,6 +63,7 @@ export function HistoryPage() {
   useEffect(() => {
     void load();
   }, [load]);
+  useLiveRefresh(["history"], load);
 
   const applyFilters = (next: HistoryFilterState) => {
     setFilters(next);
@@ -74,7 +84,7 @@ export function HistoryPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 p-4 text-sm text-red-800 dark:text-red-300">
           {error}
         </div>
       )}

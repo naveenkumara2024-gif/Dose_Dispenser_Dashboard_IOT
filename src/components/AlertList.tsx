@@ -2,10 +2,12 @@ import { Button } from "@/components/ui/button";
 import { ALERT_LABELS, type AlertRow } from "@/types";
 
 const TYPE_STYLES: Record<AlertRow["type"], string> = {
-  LOW_STOCK: "bg-amber-100 text-amber-900",
-  MISSED_DOSE: "bg-red-100 text-red-800",
-  STORAGE_CONDITION: "bg-orange-100 text-orange-900",
-  DEVICE_OFFLINE: "bg-slate-200 text-slate-800",
+  LOW_STOCK: "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300",
+  MISSED_DOSE: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300",
+  STORAGE_CONDITION: "bg-orange-100 dark:bg-orange-500/20 text-orange-900 dark:text-orange-300",
+  DEVICE_OFFLINE: "bg-slate-200 dark:bg-slate-500/25 text-slate-800 dark:text-slate-300",
+  DEVICE_TILTED: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300",
+  DISPENSE_FAILED: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300",
 };
 
 function formatWhen(iso: string): string {

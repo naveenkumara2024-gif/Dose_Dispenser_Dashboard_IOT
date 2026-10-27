@@ -33,7 +33,7 @@ export async function GET(req: BunRequest) {
         medicationId: medication.id,
         medicationName: medication.name,
         dosage: medication.dosage,
-        compartmentNo: medication.compartmentNo,
+        compartmentNo: schedule.compartmentNo,
       })
       .from(dispenseLog)
       .innerJoin(schedule, eq(dispenseLog.scheduleId, schedule.id))

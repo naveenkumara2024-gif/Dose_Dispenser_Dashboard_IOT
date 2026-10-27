@@ -11,7 +11,8 @@ type Props = {
   onCancel: () => void;
 };
 
-// Edits a medication's own fields. There's exactly one Medication row per drug, referenced
+// Edits a medication's own fields (name, dosage). Compartments belong to dose times
+// (prompt 15) and are edited per time in TimeForm. There's exactly one Medication row per drug, referenced
 // by every one of its dose times, so this is the only place these fields are edited — no
 // per-time duplicates to keep in sync (prompt 12).
 export function MedicationEditForm({
@@ -23,7 +24,6 @@ export function MedicationEditForm({
   const [values, setValues] = useState<MedicationFormValues>({
     name: medication.name,
     dosage: medication.dosage,
-    compartmentNo: medication.compartmentNo,
   });
   const [saving, setSaving] = useState(false);
 
@@ -31,7 +31,6 @@ export function MedicationEditForm({
     setValues({
       name: medication.name,
       dosage: medication.dosage,
-      compartmentNo: medication.compartmentNo,
     });
   }, [medication]);
 
@@ -57,7 +56,7 @@ export function MedicationEditForm({
           onChange={(e) => setValues({ ...values, name: e.target.value })}
         />
         {fieldError("name") && (
-          <p className="mt-1 text-xs text-red-600">{fieldError("name")}</p>
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldError("name")}</p>
         )}
       </div>
 
@@ -69,25 +68,7 @@ export function MedicationEditForm({
           onChange={(e) => setValues({ ...values, dosage: e.target.value })}
         />
         {fieldError("dosage") && (
-          <p className="mt-1 text-xs text-red-600">{fieldError("dosage")}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="med-compartment">Compartment</Label>
-        <Input
-          id="med-compartment"
-          type="number"
-          min={0}
-          value={values.compartmentNo}
-          onChange={(e) =>
-            setValues({ ...values, compartmentNo: Number(e.target.value) })
-          }
-        />
-        {fieldError("compartmentNo") && (
-          <p className="mt-1 text-xs text-red-600">
-            {fieldError("compartmentNo")}
-          </p>
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldError("dosage")}</p>
         )}
       </div>
 

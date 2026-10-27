@@ -1,12 +1,15 @@
 import { and, eq, gte, lte } from "drizzle-orm";
-import { getLastHeartbeatAt, isDeviceOnline } from "../api/deviceHeartbeat";
+import { getLastHeartbeatAt, isDeviceOnline } from "../services/heartbeat";
 import {
   dispenseLog,
   jobState,
   schedule as scheduleTable,
 } from "../db/schema";
 import { raiseAlert } from "../lib/alerts";
+import { archiveEndedDoses } from "../lib/compartments";
 import { db, pgPool } from "../lib/db";
+import { invalidate } from "../ws/hub";
+import { pushScheduleToDevice } from "../ws/schedulePush";
 import {
   addDays,
   daysBetween,
@@ -85,6 +88,9 @@ async function evaluateDate(dateStr: string, today: string) {
   for (const schedule of schedules) {
     if (!isDueOn(dateStr, schedule.frequency, schedule.dayOfWeek)) continue;
 
+    // Nothing is dispensed after the end date, so nothing can be missed.
+    if (schedule.endDate !== null && dateStr > schedule.endDate) continue;
+
     // Never invent a miss for a day before the schedule existed.
     if (todayInZone(schedule.createdAt) > dateStr) continue;
 
@@ -114,6 +120,18 @@ async function evaluateDate(dateStr: string, today: string) {
       // Stamp the miss inside the day it belongs to, not "now".
       timestamp: isToday ? new Date() : end,
     });
+    invalidate(["dashboard", "history"]);
+
+    // A weekly dose frees its compartment once that week's dose is over, taken or missed
+    // (prompt 15). Same rule as confirm-taken.
+    if (schedule.frequency === "weekly") {
+      await db
+        .update(scheduleTable)
+        .set({ active: false })
+        .where(eq(scheduleTable.id, schedule.id));
+      invalidate(["schedule"]);
+      await pushScheduleToDevice();
+    }
   }
 }
 
@@ -132,17 +150,20 @@ async function checkMissedDoses() {
   }
 }
 
-async function checkDeviceOffline() {
+// Also called by the socket hub when the device's socket stays closed past its grace
+// period (prompt 22), so "offline" no longer waits for this job's next tick.
+export async function checkDeviceOffline() {
   const lastSeenAt = await getLastHeartbeatAt();
 
   // Never checked in at all means "not set up yet", not "went offline".
   if (!lastSeenAt || isDeviceOnline(lastSeenAt)) return;
 
-  await raiseAlert({
+  const raised = await raiseAlert({
     type: "DEVICE_OFFLINE",
     message: `Device has not checked in since ${lastSeenAt.toLocaleString()}`,
     dedupeKey: "DEVICE_OFFLINE",
   });
+  if (raised) invalidate(["sensors"]);
 }
 
 export async function runMonitorOnce() {
@@ -167,6 +188,11 @@ export async function runMonitorOnce() {
 
     try {
       await checkMissedDoses();
+      // After the missed-dose pass, so a dose's last day is still evaluated before it's archived.
+      if ((await archiveEndedDoses()) > 0) {
+        invalidate(["schedule", "dashboard"]);
+        await pushScheduleToDevice();
+      }
       await checkDeviceOffline();
       return true;
     } finally {
